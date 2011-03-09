@@ -14,7 +14,7 @@ def configure(conf):
 
 def build(context, target=target):
     obj = context.new_task_gen('cxx', 'shlib', 'node_addon')
-    
+
     obj.source = ['src/iptrie.cc','src/btrie.c']
     obj.target = target
 
@@ -29,5 +29,7 @@ def move_addon(context, target=target):
     from_path = os.path.join(srcdir, blddir, 'default', filename)
     to_path = os.path.join(srcdir, 'lib', filename)
 
+    if not os.path.exists(os.path.join(srcdir, 'lib')):
+        os.mkdir(os.path.join(srcdir, 'lib'))
     if os.path.exists(from_path):
         os.rename(from_path, to_path)
