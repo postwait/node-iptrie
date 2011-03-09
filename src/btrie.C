@@ -54,6 +54,7 @@ typedef struct btrie_collapsed_node {
 #define BIT_AT(k,b) ((k[(b-1)/32] >> (31 - ((b-1)%32))) & 0x1)
 
 static void drop_node(btrie_node *node, void (*f)(void *)) {
+  if(node == NULL) return;
   if(node->bit[0]) drop_node(node->bit[0], f);
   if(node->bit[1]) drop_node(node->bit[1], f);
   if(node->data && f) f(node->data);
