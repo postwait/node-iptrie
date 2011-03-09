@@ -15,7 +15,7 @@ def configure(conf):
 def build(context, target=target):
     obj = context.new_task_gen('cxx', 'shlib', 'node_addon')
 
-    obj.source = ['src/iptrie.cc','src/btrie.c']
+    obj.source = ['src/iptrie.cc','src/btrie.C']
     obj.target = target
 
     context.add_post_fun(move_addon)
