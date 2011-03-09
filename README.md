@@ -8,13 +8,13 @@ IP address trie implementation.
 
 An example:
 
-   var iptrie = require('iptrie'),
-       lookup = new iptrie.IPTrie();
-   lookup.add("10.0.0.0", 8, 'rfc1918');
-   lookup.add("10.80.116.0", 23,  'my little bit of the world');
-   var expectnull = lookup.find("1.2.3.4"); # is null
-   var otherplace = lookup.find("10.10.2.2"); # not mine
-   var myplace    = lookup.find("10.80.117.4"); # mine
+       var iptrie = require('iptrie'),
+           lookup = new iptrie.IPTrie();
+       lookup.add("10.0.0.0", 8, 'rfc1918');
+       lookup.add("10.80.116.0", 23,  'my little bit of the world');
+       var expectnull = lookup.find("1.2.3.4"); # is null
+       var otherplace = lookup.find("10.10.2.2"); # not mine
+       var myplace    = lookup.find("10.80.117.4"); # mine
 
 ## IPTrie.add(ipaddress, prefix_length, value)
 
