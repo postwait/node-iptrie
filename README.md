@@ -16,19 +16,31 @@ An example:
        var otherplace = lookup.find("10.10.2.2"); # not mine
        var myplace    = lookup.find("10.80.117.4"); # mine
 
-## IPTrie.add(ipaddress, prefix_length, value)
+### IPTrie.add(ipaddress, prefix_length, value)
 
 Add a route to ipaddress/prefix and attach the provided value to it.
 
-## IPTrie.del(ipaddress, prefix)
+### IPTrie.del(ipaddress, prefix)
 
 Remove the route ipaddress/prefix returning true/false based on success.
 
-## IPTrie.find(ipaddress)
+### IPTrie.find(ipaddress)
 
 Find the data attached to the route that best fits the provided
 ipaddress. This will use "BPM" biggest prefix matching just as typical
 routing policies dictate.
+
+## Performance
+
+; `NODE_PATH=lib:. node test/benchmark.js ~/myroutemap.cidr`
+
+        343748 entries in 1.459 seconds 
+        235605.20904729265 add/sec
+        66.225.209.7 performance: 552486.1878453039 lookups/sec
+        199.15.227.10 performance: 591715.9763313609 lookups/sec
+        1.2.3.4 performance: 806451.6129032258 lookups/sec
+        224.0.2.3 performance: 1041666.6666666666 lookups/sec
+        10.0.2.3 performance: 917431.1926605505 lookups/sec
 
 ## License
 
