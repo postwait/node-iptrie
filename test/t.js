@@ -12,7 +12,8 @@ var expectations = {
   '2001:470:0:76::2': 'website',
   '2001:470:0:76::3': 'he',
   '2620:0:0:0::2': null,
-  '2620:1f:0:1::1': 'omniti'
+  '2620:1f:0:1::1': 'omniti',
+  '75.49.14.236': 'boom'
 };
 
 fs.readFile("test/test.cidr", 'utf-8', function(err, data) {
@@ -30,7 +31,7 @@ fs.readFile("test/test.cidr", 'utf-8', function(err, data) {
       }
     }
   }
-  assert.equal(count, 5, "loaded entries");
+  assert.equal(count, 9, "loaded entries");
   for(var target in expectations) {
     assert.equal(lookup.find(target), expectations[target], "test "+target);
   }

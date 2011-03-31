@@ -144,11 +144,17 @@ del_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
 static int
 find_bpm_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
                btrie_node **rnode) {
-  btrie_node *parent = NULL, *node;
+  int stack_pos = -1;
+  btrie_node *pstack[MAXBITS], *parent = NULL, *node;
   node = *tree;
   while(node && node->prefix_len <= prefix_len &&
         match_bpm(node, key, node->prefix_len)) {
-    parent = node;
+#ifdef DEBUG_BTRIE
+    struct in_addr s;
+    s.s_addr = htonl(*key);
+    fprintf(stderr, "%s looking at %s/%d\n", inet_ntoa(s), node->long_desc, node->prefix_len);
+#endif
+    parent = pstack[++stack_pos] = node;
     if(parent->prefix_len == prefix_len) {
       /* exact match */
       *rnode = parent;
@@ -156,7 +162,8 @@ find_bpm_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
     }
     node = parent->bit[BIT_AT(key, parent->prefix_len+1)];
   }
-  *rnode = parent;
+  while(stack_pos > 0 && pstack[stack_pos]->data == NULL) stack_pos--;
+  *rnode = pstack[stack_pos];
   return 0;
 }
 void *
