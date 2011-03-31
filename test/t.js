@@ -33,7 +33,9 @@ fs.readFile("test/test.cidr", 'utf-8', function(err, data) {
   }
   assert.equal(count, 9, "loaded entries");
   for(var target in expectations) {
-    assert.equal(lookup.find(target), expectations[target], "test "+target);
+    var result = lookup.find(target);
+    assert.equal(result, expectations[target],
+                 "test "+target + " ["+result+" != "+expectations[target]+"]");
   }
 });
 

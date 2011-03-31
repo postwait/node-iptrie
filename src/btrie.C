@@ -46,6 +46,7 @@ typedef struct btrie_collapsed_node {
   void *data;
   uint32_t bits[MAXBITS/32];
   unsigned char prefix_len;
+  unsigned char incidental;
 #ifdef DEBUG_BTRIE
   char *long_desc;
 #endif
@@ -127,6 +128,7 @@ del_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
       /* exact match */
       if(node->data && f) f(node->data);
       node->data = NULL;
+      node->incidental = 1;
       if(node->bit[0] == NULL || node->bit[1] == NULL) {
         /* collapse (even if both are null) */
         parent->bit[BIT_AT(key, parent->prefix_len+1)] =
@@ -143,28 +145,32 @@ del_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
 }
 static int
 find_bpm_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
-               btrie_node **rnode) {
-  int stack_pos = -1;
+               btrie_node **rnode, btrie_node **explicit_container) {
+  int stack_pos = -1, exact = 0;
   btrie_node *pstack[MAXBITS], *parent = NULL, *node;
   node = *tree;
   while(node && node->prefix_len <= prefix_len &&
         match_bpm(node, key, node->prefix_len)) {
 #ifdef DEBUG_BTRIE
-    struct in_addr s;
-    s.s_addr = htonl(*key);
-    fprintf(stderr, "%s looking at %s/%d\n", inet_ntoa(s), node->long_desc, node->prefix_len);
+    char ipb[128];
+    uint32_t addr[4];
+    int i=0; \
+    for(i=0;i<4;i++) addr[i] = (i*32)+1 >= prefix_len ? 0 : htonl(key[i]);
+    inet_ntop(prefix_len > 32 ? AF_INET6 : AF_INET, addr, ipb, sizeof(ipb));
+    fprintf(stderr, "%s looking at %s/%d\n", ipb, node->long_desc, node->prefix_len);
 #endif
     parent = pstack[++stack_pos] = node;
     if(parent->prefix_len == prefix_len) {
-      /* exact match */
-      *rnode = parent;
-      return 1;
+      exact = 1;
+      break;
     }
     node = parent->bit[BIT_AT(key, parent->prefix_len+1)];
   }
-  while(stack_pos > 0 && pstack[stack_pos]->data == NULL) stack_pos--;
-  *rnode = pstack[stack_pos];
-  return 0;
+  if(rnode) *rnode = parent;
+  while(stack_pos > 0 && pstack[stack_pos]->incidental == 1) stack_pos--;
+  if(explicit_container)
+    *explicit_container = stack_pos >= 0 ? pstack[stack_pos] : NULL;
+  return exact;
 }
 void *
 find_bpm_route_ipv6(btrie *tree, struct in6_addr *a, unsigned char *pl) {
@@ -172,7 +178,7 @@ find_bpm_route_ipv6(btrie *tree, struct in6_addr *a, unsigned char *pl) {
   uint32_t ia[4], i;
   memcpy(ia, &a->s6_addr, sizeof(ia));
   for(i=0;i<4;i++) ia[i] = ntohl(ia[i]);
-  find_bpm_route(tree, ia, 128, &node);
+  find_bpm_route(tree, ia, 128, NULL, &node);
   if(node && pl) *pl = node->prefix_len;
   if(node && node->data) return node->data;
   return NULL;
@@ -181,7 +187,7 @@ void *
 find_bpm_route_ipv4(btrie *tree, struct in_addr *a, unsigned char *pl) {
   btrie_node *node = NULL;
   uint32_t ia = ntohl(a->s_addr);
-  find_bpm_route(tree, &ia, 32, &node);
+  find_bpm_route(tree, &ia, 32, NULL, &node);
   if(node && pl) *pl = node->prefix_len;
   if(node && node->data) return node->data;
   return NULL;
@@ -207,8 +213,10 @@ void add_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
 #ifdef DEBUG_BTRIE
   char ipb[128];
 #define DA(n, pl, m) do { \
-  uint32_t addr = htonl(*key); \
-  inet_ntop(AF_INET, &addr, ipb, sizeof(ipb)); \
+  uint32_t addr[4]; \
+  int i=0; \
+  for(i=0;i<4;i++) addr[i] = (i*32)+1 >= prefix_len ? 0 : htonl(key[i]); \
+  inet_ntop(prefix_len > 32 ? AF_INET6 : AF_INET, addr, ipb, sizeof(ipb)); \
   (n)->long_desc = strdup(ipb); \
   fprintf(stderr, "N(%s/%d) -> %s\n", (n)->long_desc, pl, m ? m : "insert"); \
 } while(0)
@@ -228,8 +236,9 @@ void add_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
     *tree = node;
     return;
   }
-  if(find_bpm_route(tree, key, prefix_len, &node)) {
+  if(find_bpm_route(tree, key, prefix_len, &node, NULL)) {
     /* exact match */
+    node->incidental = 0;
     node->data = data;
     return;
   }
@@ -269,6 +278,7 @@ void add_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
     /* reparent */
     node = (btrie_node *)calloc(1, sizeof(*node));
     node->prefix_len = bits_in_common;
+    node->incidental = 1;
     memcpy(node->bits, newnode->bits, sizeof(node->bits));
     DA(node, node->prefix_len, "incidental");
     assert(BIT_AT(down->bits, node->prefix_len+1) !=
