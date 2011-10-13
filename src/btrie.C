@@ -84,39 +84,32 @@ static inline int match_bpm(btrie_node *node,
   }
   return 1;
 }
+
 static inline int calc_bits_in_commons(btrie_node *node,
                                        uint32_t *key,
                                        unsigned char match_len) {
-  int start = node->prefix_len;
-  int offset = 0;
-  int total_matched = 0;
-  if(match_len < start) start = match_len;
-  if(start > 32) {
-    register int i, full_words = start/32, new_start = 0;
-    /* work up through the words; reuse match_len */
-    for(i = 0; i < full_words; i++) {
-      if(node->bits[i] != key[i]) break;
-      new_start += 32;
+ /* Largest common mask */
+  int i;
+  u_int32_t prefix_len = 0;
+
+  for (i = 0; i < 32/match_len; i++) {
+    u_int32_t mask = 0, trymask;
+
+    while(mask != 0xffffffff) {
+      trymask = (mask >> 1) | 0x80000000;
+      if((node->bits[i] & trymask) != (key[i] & trymask)) {        break;
+      }
+      mask = trymask;
+      prefix_len++;
     }
-    if(i == full_words) new_start += (start % 32);
-    start = new_start;
+
+    if (mask != 0xffffffff) {
+      break;
+    }
   }
-  do {
-    int matched = (start % 32);
-    uint32_t mask = ~0;
-    assert(offset >= 0);
-    matched = matched ? matched : 32; /* 0 is really 32 bits */
-    mask <<= (32-(start%32));
-    while((node->bits[offset] & mask) != (key[offset] & mask)) {
-      matched--;
-      mask <<= 1;
-    }
-    start -= 32;
-    total_matched += matched;
-    offset--;
-  } while(start > 0);
-  return total_matched;
+  return prefix_len;
 }
+
 static int
 del_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
           void (*f)(void *)) {
