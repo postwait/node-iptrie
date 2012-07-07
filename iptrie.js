@@ -1,1 +1,1 @@
-module.exports = require('./lib/iptrie');
+module.exports = require('./build/Release/iptrie');

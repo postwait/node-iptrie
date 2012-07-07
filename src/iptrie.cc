@@ -34,7 +34,6 @@
 
 #include <v8.h>
 #include <node.h>
-#include <node_events.h>
 #include <assert.h>
 
 using namespace v8;

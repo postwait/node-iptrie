@@ -90,11 +90,11 @@ static inline int calc_bits_in_commons(btrie_node *node,
                                        unsigned char match_len) {
  /* Largest common mask */
   int i;
-  u_int32_t prefix_len = 0;
-  const int max_prefix_len = MIN(match_len, node->prefix_len);
+  uint32_t prefix_len = 0;
+  const unsigned int max_prefix_len = (match_len > node->prefix_len) ? match_len : node->prefix_len;
 
   for (i = 0; i < MAXBITS/32; i++) {
-    u_int32_t mask = 0, trymask;
+    uint32_t mask = 0, trymask;
 
     while(mask != 0xffffffff && prefix_len < max_prefix_len) {
       trymask = (mask >> 1) | 0x80000000;
