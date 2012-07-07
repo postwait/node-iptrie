@@ -29,7 +29,7 @@ def move_addon(context, target=target):
     from_path = os.path.join(srcdir, blddir, 'default', filename)
     to_path = os.path.join(srcdir, 'lib', filename)
 
-    if not os.path.exists(os.path.join(srcdir, 'lib')):
+    if not os.fs.exists(os.path.join(srcdir, 'lib')):
         os.mkdir(os.path.join(srcdir, 'lib'))
-    if os.path.exists(from_path):
+    if os.fs.exists(from_path):
         os.rename(from_path, to_path)
