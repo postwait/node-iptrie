@@ -213,7 +213,7 @@ void add_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
   for(i=0;i<4;i++) addr[i] = (i*32)+1 >= prefix_len ? 0 : htonl(key[i]); \
   inet_ntop(prefix_len > 32 ? AF_INET6 : AF_INET, addr, ipb, sizeof(ipb)); \
   (n)->long_desc = strdup(ipb); \
-  fprintf(stderr, "N(%s/%d) -> %s\n", (n)->long_desc, pl, m ? m : "insert"); \
+  fprintf(stderr, "LINE[%d] N(%s/%d) -> %s\n", __LINE__, (n)->long_desc, pl, m ? m : "insert"); \
 } while(0)
 #else
 #define DA(n, pl, m)
@@ -253,6 +253,7 @@ void add_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
   /* here we must be inserting between node and down */
   bits_in_common = calc_bits_in_commons(down, key, prefix_len);
   parent = node;
+  DA(newnode, prefix_len, NULL);
   assert(bits_in_common <= prefix_len);
   assert(!parent || parent->prefix_len < prefix_len);
 
@@ -288,15 +289,24 @@ void add_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
 
 void add_route_ipv4(btrie *tree, struct in_addr *a,
                     unsigned char prefix_len, void *data) {
-  uint32_t ia = ntohl(a->s_addr);
+  uint32_t ia = ntohl(a->s_addr), mask;
   assert(prefix_len <= 32);
+  mask = (prefix_len == 32) ? 0xffffffff : ~(0xffffffff >> prefix_len);
+  ia &= mask;
   add_route(tree, &ia, prefix_len, data);
 }
 void add_route_ipv6(btrie *tree, struct in6_addr *a,
                     unsigned char prefix_len, void *data) {
-  uint32_t ia[4], i;
+  uint32_t ia[4], i, mask;
+  int splen;
   memcpy(ia, &a->s6_addr, sizeof(ia));
-  for(i=0;i<4;i++) ia[i] = ntohl(ia[i]);
+  for(i=0;i<4;i++) {
+    splen = prefix_len - i*32;
+    mask = 0;
+    if(splen >= 0)
+      mask = (splen >= 32) ? 0xffffffff : ~(0xffffffff >> splen);
+    ia[i] = ntohl(ia[i]) & mask;
+  }
   assert(prefix_len <= 128);
   add_route(tree, ia, prefix_len, data);
 }
