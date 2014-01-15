@@ -1,7 +1,7 @@
 { "name" : "iptrie"
 , "description" : "IP tries (prefix tree)"
 , "keywords" : [ "iptrie", "blocklist", "IP", "acl" ]
-, "version" : "0.0.4"
+, "version" : "0.0.5"
 , "author" : { "name" : "Theo Schlossnagle" }
 , "directories": { "lib": "." }
 , "repository" :
