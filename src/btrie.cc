@@ -254,7 +254,7 @@ void add_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
   bits_in_common = calc_bits_in_commons(down, key, prefix_len);
   parent = node;
   DA(newnode, prefix_len, NULL);
-  assert(bits_in_common <= prefix_len);
+  if(bits_in_common > prefix_len) bits_in_common = prefix_len;
   assert(!parent || parent->prefix_len < prefix_len);
 
   /* we either need to make a new branch above down and newnode
