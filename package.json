@@ -12,7 +12,7 @@
   { "url" : "http://github.com/postwait/node-iptrie/issues"
   }
 , "main" : "iptrie"
-, "engines" : { "node" : "0.2 || 0.4 || 0.5 || 0.6 || 0.8 || 0.10" }
+, "engines" : { "node" : ">= 4.2.0" }
 , "licenses" :
   [ { "type" : "BSD" } ]
 }

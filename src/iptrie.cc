@@ -34,30 +34,32 @@
 
 #include <v8.h>
 #include <node.h>
+#include <node_object_wrap.h>
 #include <assert.h>
 
 using namespace v8;
 using namespace node;
 
-class IPTrie : ObjectWrap {
+class IPTrie : public ObjectWrap {
   public:
     static Persistent<FunctionTemplate> s_ct;
     static void
     Initialize(v8::Handle<v8::Object> target) {
-      HandleScope scope;
+      Isolate *isolate = target->GetIsolate();
+      HandleScope scope(isolate);
 
-      Local<FunctionTemplate> t = FunctionTemplate::New(New);
-      s_ct = Persistent<FunctionTemplate>::New(t);
-      s_ct->InstanceTemplate()->SetInternalFieldCount(3);
-      s_ct->SetClassName(String::NewSymbol("IPTrie"));
+      Local<FunctionTemplate> t = FunctionTemplate::New(isolate, New);
+      s_ct.Reset(isolate, t);
+      t->InstanceTemplate()->SetInternalFieldCount(3);
+      t->SetClassName(String::NewFromUtf8(isolate, "IPTrie", String::kInternalizedString));
 
       NODE_SET_PROTOTYPE_METHOD(t, "add", Add);
       NODE_SET_PROTOTYPE_METHOD(t, "del", Del);
       NODE_SET_PROTOTYPE_METHOD(t, "find", Find);
 
 
-      target->Set(String::NewSymbol("IPTrie"),
-                  s_ct->GetFunction());
+      target->Set(String::NewFromUtf8(isolate, "IPTrie", String::kInternalizedString),
+                  t->GetFunction());
     }
 
     struct obj_baton_t {
@@ -68,7 +70,7 @@ class IPTrie : ObjectWrap {
     static void delete_baton(void *vb) {
       obj_baton_t *b = (obj_baton_t *)vb;
       if(!b) return;
-      b->val.Dispose();
+      b->val.Reset();
       delete b;
     }
 
@@ -79,7 +81,6 @@ class IPTrie : ObjectWrap {
     }
 
     int Add(const char *ip, int prefix, Handle<Value> dv) {
-      HandleScope scope;
       int family, rv;
       union {
         struct in_addr addr4;
@@ -97,7 +98,7 @@ class IPTrie : ObjectWrap {
       }
       obj_baton_t *baton = new obj_baton_t();
       baton->iptrie = this;
-      baton->val = Persistent<Value>::New(dv);
+      baton->val.Reset(Isolate::GetCurrent(), dv);
 
       if(family==AF_INET) add_route_ipv4(&tree4, &a.addr4, prefix, baton);
       else add_route_ipv6(&tree6, &a.addr6, prefix, baton);
@@ -105,7 +106,6 @@ class IPTrie : ObjectWrap {
     }
 
     int Del(const char *ip, int prefix) {
-      HandleScope scope;
       int family, rv;
       union {
         struct in_addr addr4;
@@ -126,7 +126,6 @@ class IPTrie : ObjectWrap {
     }
 
     obj_baton_t *Find(const char *query) {
-      HandleScope scope;
       int family, rv;
       unsigned char pl;
       union {
@@ -148,32 +147,34 @@ class IPTrie : ObjectWrap {
     }
 
   protected:
-    static Handle<Value> New(const Arguments& args) {
-      HandleScope scope;
-
+    static void New(const FunctionCallbackInfo<Value> &args) {
       IPTrie *iptrie = new IPTrie();
       iptrie->Wrap(args.This());
 
-      return args.This();
+      args.GetReturnValue().Set(args.This());
     }
 
-    static Handle<Value> Add(const Arguments &args) {
-      HandleScope scope;
+    static void Add(const FunctionCallbackInfo<Value> &args) {
+      Isolate *isolate = args.GetIsolate();
+      HandleScope scope(isolate);
 
       if (args.Length() < 1 || !args[0]->IsString()) {
-        return ThrowException(
+        isolate->ThrowException(
                 Exception::TypeError(
-                    String::New("First argument must be an IP.")));
+                    String::NewFromUtf8(isolate, "First argument must be an IP.")));
+        return;
       }
       if (args.Length() < 2 || !args[1]->IsNumber()){
-        return ThrowException(
+        isolate->ThrowException(
           Exception::TypeError(
-            String::New("Second argument must be a prefix length")));
+            String::NewFromUtf8(isolate, "Second argument must be a prefix length")));
+        return;
       }
       if (args.Length() < 3) {
-        return ThrowException(
+        isolate->ThrowException(
           Exception::TypeError(
-            String::New("Third argument must exist")));
+            String::NewFromUtf8(isolate, "Third argument must exist")));
+        return;
       }
 
       String::Utf8Value ipaddress(args[0]->ToString());
@@ -182,26 +183,27 @@ class IPTrie : ObjectWrap {
       IPTrie *iptrie = ObjectWrap::Unwrap<IPTrie>(args.This());
       Handle<Value> data = args[2];
       if(iptrie->Add(*ipaddress, prefix_len, data) == 0) {
-        return ThrowException(
+        isolate->ThrowException(
           Exception::TypeError(
-            String::New("Could not parse IP")));
+            String::NewFromUtf8(isolate, "Could not parse IP")));
+        return;
       }
-
-      return Undefined();
     }
 
-    static Handle<Value> Del(const Arguments &args) {
-      HandleScope scope;
+    static void Del(const FunctionCallbackInfo<Value> &args) {
+      Isolate *isolate = args.GetIsolate();
 
       if (args.Length() < 1 || !args[0]->IsString()) {
-        return ThrowException(
+        isolate->ThrowException(
                 Exception::TypeError(
-                    String::New("First argument must be an IP.")));
+                    String::NewFromUtf8(isolate, "First argument must be an IP.")));
+        return;
       }
       if (args.Length() < 2 || !args[1]->IsNumber()){
-        return ThrowException(
+        isolate->ThrowException(
           Exception::TypeError(
-            String::New("Second argument must be a prefix length")));
+            String::NewFromUtf8(isolate, "Second argument must be a prefix length")));
+        return;
       }
 
       String::Utf8Value ipaddress(args[0]->ToString());
@@ -210,24 +212,26 @@ class IPTrie : ObjectWrap {
       IPTrie *iptrie = ObjectWrap::Unwrap<IPTrie>(args.This());
       int success = iptrie->Del(*ipaddress, prefix_len);
 
-      return success ? True() : False();
+      args.GetReturnValue().Set(success ? True(isolate) : False(isolate));
     }
 
-    static Handle<Value> Find(const Arguments &args) {
-      HandleScope scope;
+    static void Find(const FunctionCallbackInfo<Value> &args) {
+      Isolate *isolate = args.GetIsolate();
 
       if (args.Length() < 1 || !args[0]->IsString()) {
-        return ThrowException(
+        isolate->ThrowException(
                 Exception::TypeError(
-                    String::New("Required argument: ip address.")));
+                    String::NewFromUtf8(isolate, "Required argument: ip address.")));
+        return;
       }
 
       String::Utf8Value ipaddress(args[0]->ToString());
 
       IPTrie *iptrie = ObjectWrap::Unwrap<IPTrie>(args.This());
       obj_baton_t *d = iptrie->Find(*ipaddress);
-      if(d == NULL) return Undefined();
-      return d->val;
+      if(d != NULL) {
+        args.GetReturnValue().Set(d->val);
+      }
     }
 
   private:
