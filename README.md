@@ -1,6 +1,6 @@
 IP address trie implementation.
 
-1. Run `node-waf configure build`.
+1. Run `node-gyp configure build`.
 2. Test `node test/t.js`.
 
 
