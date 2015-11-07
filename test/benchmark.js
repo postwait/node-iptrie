@@ -1,7 +1,6 @@
-var sys = require('sys'),
-    fs = require('fs'),
+var fs = require('fs'),
     assert = require('assert'),
-    iptrie = require('iptrie');
+    iptrie = require('../index');
 
 var lookup = new iptrie.IPTrie();
 
@@ -17,20 +16,20 @@ fs.readFile(process.argv[2], 'utf-8', function(err, data) {
         count++;
       }
       catch(e) {
-        sys.puts(e,m);
+        console.log(e, m);
       }
     }
   }
   var elapsed = (+(new Date()) - start)/1000.0;
-  sys.puts(count + " entries in " + elapsed + " seconds ");
-  sys.puts(count/elapsed + " add/sec");
+  console.log(count + " entries in " + elapsed + " seconds ");
+  console.log(count/elapsed + " add/sec");
 
   var timelookup = function(ip, cnt) {
     if(!cnt) cnt = 100000;
     var start = +(new Date());
     for(var i=0; i<cnt; i++) lookup.find(ip);
     var elapsed = (+(new Date()) - start)/1000.0;
-    sys.puts(ip + " performance: " + cnt/elapsed + " lookups/sec");
+    console.log(ip + " performance: " + cnt/elapsed + " lookups/sec");
   };
   timelookup('66.225.209.7');
   timelookup('199.15.227.10');

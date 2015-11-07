@@ -1,7 +1,6 @@
-var sys = require('sys'),
-    fs = require('fs'),
+var fs = require('fs'),
     assert = require('assert'),
-    iptrie = require('iptrie');
+    iptrie = require('../index');
 
 var lookup = new iptrie.IPTrie();
 
@@ -27,7 +26,7 @@ fs.readFile("test/test.cidr", 'utf-8', function(err, data) {
         count++;
       }
       catch(e) {
-        sys.puts(e,m);
+        console.log(e,m);
       }
     }
   }
